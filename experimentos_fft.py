@@ -3,8 +3,9 @@ import math
 import random
 import matplotlib.pyplot as plt
 
-
+#============================
 #IMPLEMENTACIÓN DE DFT Y FFT
+#============================
 def dft(x):
     """
     Calcula la DFT mediante sumatoria directa con dos bucles for anidados.
@@ -65,5 +66,66 @@ X_fft = fft(senal_test)
 error_max = max(abs(d - f) for d, f in zip(X_dft, X_fft))
 assert error_max < 1e-9, f"Error: La DFT difiere de la FFT por {error_max}"
 print(f"[OK] DFT y FFT con éxito (Diferencia maxima = {error_max:.2e}).\n")
+
+
+# ===================================
+# COMPARACION DE TIEMPOS DE EJECUCION 
+# ===================================
+
+# Tamaños de prueba, el algoritmo de FFT requiere que N sea potencia de 2
+valores_N = [32, 64, 128, 256, 512, 1024]
+#listas para guardar los tiempos de ejecución de cada algoritmo
+tiempos_dft = [] 
+tiempos_fft = []
+
+print(f"{'N':<8}{'Tiempo DFT (ms)':<20}{'Tiempo FFT (ms)':<20}{'Aceleración':<15}")
+print("-" * 60)
+
+for N in valores_N:
+    #Genera una señal aleatoria de tamaño N con distribución gaussiana (media=0, desviación=1)
+    x = [random.gauss(0.0, 1.0) for _ in range(N)]
+    
+    # 1.Se toma el tiempo de la DFT (O(N^2))
+    t0 = time.perf_counter()
+    _ = dft(x)
+    t_dft = (time.perf_counter() - t0) * 1000.0  # en milisegundos
+    tiempos_dft.append(t_dft)
+    
+    # 2.Se toma el tiempo de la FFT(O(N log N))
+    repeticiones = 20 #bucle de 20 repeticiones porque el algoritmo de FFT es muy rápido y necesitamos un tiempo medible.
+    t0 = time.perf_counter()
+    for _ in range(repeticiones):
+        _ = fft(x)
+    t_fft = ((time.perf_counter() - t0) / repeticiones) * 1000.0 #asi que se promedia ejecutando 20 veces y dividiendo el tiempo total entre 20.
+    tiempos_fft.append(t_fft)
+    
+    aceleracion = t_dft / t_fft if t_fft > 0 else 0 #factor de Speedup, cuantas veces es mas rapida la fft vs la dft
+    print(f"{N:<8}{t_dft:<20.4f}{t_fft:<20.4f}{aceleracion:<15.1f}x")
+
+#Graficas comparativas de rendimiento
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5))
+
+# Escala lineal
+ax1.plot(valores_N, tiempos_dft, 'o-', color='tab:red', label=r'DFT Manual ($O(N^2)$)')
+ax1.plot(valores_N, tiempos_fft, 's-', color='tab:blue', label=r'FFT Radix-2 ($O(N \log N)$)')
+ax1.set_title('Comparativa de Rendimiento (Escala Lineal)')
+ax1.set_xlabel('Tamaño de muestra (N)')
+ax1.set_ylabel('Tiempo de ejecución (ms)')
+ax1.grid(True, linestyle='--', alpha=0.6)
+ax1.legend()
+
+# Escala semilogarítmica
+ax2.plot(valores_N, tiempos_dft, 'o-', color='tab:red', label=r'DFT Manual ($O(N^2)$)')
+ax2.plot(valores_N, tiempos_fft, 's-', color='tab:blue', label=r'FFT Radix-2 ($O(N \log N)$)')
+ax2.set_yscale('log')
+ax2.set_title('Comparativa de Rendimiento (Escala Semilogarítmica)')
+ax2.set_xlabel('Tamaño de muestra (N)')
+ax2.set_ylabel('Tiempo de ejecución (ms) [Log]')
+ax2.grid(True, which="both", linestyle='--', alpha=0.6)
+ax2.legend()
+
+plt.tight_layout()
+plt.savefig('figura_comparativa_tiempos.png', dpi=300)
+print("\n[OK] Bloque 2: Gráfica 'figura_comparativa_tiempos.png' guardada.")
 
 
