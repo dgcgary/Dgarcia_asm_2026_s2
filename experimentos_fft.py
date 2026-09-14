@@ -106,8 +106,8 @@ for N in valores_N:
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5))
 
 # Escala lineal
-ax1.plot(valores_N, tiempos_dft, 'o-', color='tab:red', label=r'DFT Manual ($O(N^2)$)')
-ax1.plot(valores_N, tiempos_fft, 's-', color='tab:blue', label=r'FFT Radix-2 ($O(N \log N)$)')
+ax1.plot(valores_N, tiempos_dft, 'o-', color='tab:red', label=r'DFT($O(N^2)$)')
+ax1.plot(valores_N, tiempos_fft, 's-', color='tab:blue', label=r'FFT($O(N \log N)$)')
 ax1.set_title('Comparativa de Rendimiento (Escala Lineal)')
 ax1.set_xlabel('Tamaño de muestra (N)')
 ax1.set_ylabel('Tiempo de ejecución (ms)')
@@ -115,8 +115,8 @@ ax1.grid(True, linestyle='--', alpha=0.6)
 ax1.legend()
 
 # Escala semilogarítmica
-ax2.plot(valores_N, tiempos_dft, 'o-', color='tab:red', label=r'DFT Manual ($O(N^2)$)')
-ax2.plot(valores_N, tiempos_fft, 's-', color='tab:blue', label=r'FFT Radix-2 ($O(N \log N)$)')
+ax2.plot(valores_N, tiempos_dft, 'o-', color='tab:red', label=r'DFT($O(N^2)$)')
+ax2.plot(valores_N, tiempos_fft, 's-', color='tab:blue', label=r'FFT($O(N \log N)$)')
 ax2.set_yscale('log')
 ax2.set_title('Comparativa de Rendimiento (Escala Semilogarítmica)')
 ax2.set_xlabel('Tamaño de muestra (N)')
@@ -129,3 +129,86 @@ plt.savefig('figura_comparativa_tiempos.png', dpi=300)
 print("\n[OK] Bloque 2: Gráfica 'figura_comparativa_tiempos.png' guardada.")
 
 
+# ===========================================
+# ANALISIS DE MAGNITUD Y FASE
+# ===========================================
+
+fs = 8000.0       # Frecuencia de muestreo (8000 Hz)
+N_puntos = 1024   # Numero de muestras
+t = [i / fs for i in range(N_puntos)]  # Vector temporal
+
+# Señal 1: Suma de dos tonos puros
+# Tono 1: 300 Hz, amplitud 1.5 V, fase 0 rad (0 grados)
+# Tono 2: 1200 Hz, amplitud 0.8 V, fase pi/3 rad (60 grados)
+x1 = [
+    
+    1.5 * math.cos(2 * math.pi * 300 * ti) + 
+    0.8 * math.cos(2 * math.pi * 1200 * ti + math.pi / 3)
+    for ti in t
+]
+
+# Señal 2: Tono de sonar/radar (2500 Hz, fase -45 grados)
+x2 = [
+    2.0 * math.cos(2 * math.pi * 2500 * ti - math.pi / 4)
+    for ti in t
+]
+
+def graficar_espectro(x, fs, titulo, nombre_archivo):
+    """
+    Calcula la FFT y grafica la señal temporal, magnitud en Voltios
+    y fase en grados hasta la frecuencia de Nyquist (fs/2).
+    """
+    N = len(x)
+    X = fft(x)
+    mitad = N // 2
+    
+    #Se pasa de frecuencia bin a frecuencia en Hz: f[k] = k * (fs / N)
+    frecuencias = [k * (fs / N) for k in range(mitad)]
+    
+    # Magnitud normalizada en Python es directo con abs, sqrt(real^2 + imag^2) 
+    magnitud = [abs(X[k]) * (2.0 / N) for k in range(mitad)]
+    magnitud[0] = magnitud[0] / 2.0  # El componente DC no se duplica
+    
+    # Fase en grados usando math.atan2(imaginario, real)
+    fase = [math.degrees(math.atan2(X[k].imag, X[k].real)) for k in range(mitad)]
+    
+    # Enmascara la fase en frecuencias donde no hay señal (elimina el ruido de redondeo)
+    umbral_ruido = 0.05 * max(magnitud)
+    fase_limpia = [fase[k] if magnitud[k] >= umbral_ruido else 0.0 for k in range(mitad)]
+    
+    fig, axs = plt.subplots(3, 1, figsize=(10, 8))
+    
+    # 1. Señal en el tiempo (primeras 80 muestras para visualizar la forma de onda)
+    t_ms = [t[i] * 1000.0 for i in range(80)]
+    axs[0].plot(t_ms, x[:80], color='black', lw=1.2)
+    axs[0].set_title(f'{titulo} - Dominio del Tiempo')
+    axs[0].set_xlabel('Tiempo (ms)')
+    axs[0].set_ylabel('Amplitud (V)')
+    axs[0].grid(True, linestyle='--', alpha=0.5)
+    
+    # 2. Espectro de Magnitud
+    axs[1].stem(frecuencias, magnitud, linefmt='b-', markerfmt='bo', basefmt='r-')
+    axs[1].set_title('Espectro de Magnitud ($|X[k]|$ normalizado)')
+    axs[1].set_xlabel('Frecuencia (Hz)')
+    axs[1].set_ylabel('Amplitud (V)')
+    axs[1].set_xlim(0, fs / 2)
+    axs[1].grid(True, linestyle='--', alpha=0.5)
+    
+    # 3. Espectro de Fase
+    axs[2].stem(frecuencias, fase_limpia, linefmt='m-', markerfmt='mo', basefmt='r-')
+    axs[2].set_title(r'Espectro de Fase ($\angle X[k]$ en grados)')
+    axs[2].set_xlabel('Frecuencia (Hz)')
+    axs[2].set_ylabel('Fase (°)')
+    axs[2].set_xlim(0, fs / 2)
+    axs[2].set_ylim(-180, 180)
+    axs[2].grid(True, linestyle='--', alpha=0.5)
+    
+    plt.tight_layout()
+    plt.savefig(nombre_archivo, dpi=300)
+    print(f"[OK] Bloque 3: Gráfica '{nombre_archivo}' guardada.")
+
+# Generar y exportar las figuras
+graficar_espectro(x1, fs, 'Señal Mixta (300 Hz + 1200 Hz)', 'figura_espectro_senal1.png')
+graficar_espectro(x2, fs, 'Señal de Sonar (2500 Hz)', 'figura_espectro_senal2.png')
+
+plt.show()
