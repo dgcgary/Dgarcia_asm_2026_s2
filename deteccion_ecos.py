@@ -6,6 +6,8 @@ Taller Semana 5: Módulo de Detección de Ecos por Correlación Cruzada.
 import os
 import numpy as np
 
+from experimentos_fft import fft  # <-- FFT propia (Cooley-Tukey), implementada en la Parte 2
+
 # Semilla fija para asegurar repetibilidad en las pruebas
 np.random.seed(42)
 
@@ -73,22 +75,107 @@ def correlacion_directa(y, x):
     return R
 
 
+# --------------------------------------------------------------------------
+# A partir de aqui se construye la correlacion via FFT usando nuestra
+# implementacion de Cooley-Tukey.
+# No se usa np.fft en ningun punto de este archivo.
+# --------------------------------------------------------------------------
+
+def siguiente_potencia_dos(n):
+    """
+    Retorna la potencia de 2 mas pequena que es >= n.
+
+    Es necesaria porque el algoritmo Radix-2 de Cooley-Tukey (experimentos_fft.fft)
+    solo funciona correctamente cuando el largo de la señal es una
+    potencia de 2 (se va dividiendo a la mitad en cada nivel de la
+    recursion). Cualquier otro largo se debe rellenar con ceros
+    (zero-padding) hasta la siguiente potencia de 2.
+    """
+    if n <= 1:
+        return 1
+    return 1 << (n - 1).bit_length()
+
+
+def ifft_propia(X):
+    """
+    Transformada inversa de Fourier (IFFT), reutilizando nuestra
+    'fft' (Cooley-Tukey) mediante la identidad:
+
+        ifft(X) = conj( fft( conj(X) ) ) / N
+
+    Esto evita tener que programar una segunda version de Cooley-Tukey
+    para la transformada inversa: basta con conjugar la entrada, aplicar
+    la misma FFT hacia adelante, conjugar de nuevo el resultado y
+    dividir entre N.
+
+    Parametros
+    ----------
+    X : list[complex]  (largo N, potencia de 2)
+
+    Retorna
+    -------
+    list[complex] de largo N
+    """
+    N = len(X)
+    X_conjugado = [muestra.conjugate() for muestra in X]
+    x = fft(X_conjugado)
+    return [muestra.conjugate() / N for muestra in x]
+
+
 def correlacion_fft(y, x):
     """
-    Calcula la correlación cruzada en el dominio de la frecuencia mediante FFT.
-    
-    Complejidad: O(L log L). Aplica el teorema de convolución multiplicando
-    el espectro de 'y' por el conjugado del espectro de 'x'. Usa zero-padding
-    para evitar aliasing circular (correlación lineal).
+    Calcula la correlación cruzada en el dominio de la frecuencia usando
+    nuestra FFT, aplicando el teorema de
+    convolución:
+
+        corr(y, x)[m] = IFFT( FFT(y) * conj(FFT(x)) )
+
+    Complejidad: O(L log L), donde L es la longitud usada para la FFT.
+
+    Detalles de implementación:
+    1) El algoritmo Radix-2 exige que el largo de la señal sea potencia
+       de 2, así que se rellena (zero-padding) hasta la siguiente
+       potencia de 2 que sea >= N + M - 1.
+    2) El "+ M - 1" (en vez de solo N) es indispensable para que la FFT
+       calcule la correlación LINEAL (la que tiene sentido físico aquí)
+       y no la correlación CIRCULAR, que es lo que se obtendría si no
+       se rellenara lo suficiente (efecto de "wrap-around"/aliasing).
+
+    Parámetros
+    ----------
+    y : np.ndarray   (largo N) señal recibida
+    x : np.ndarray   (largo M) señal conocida (plantilla)
+
+    Retorna
+    -------
+    R : np.ndarray (largo N-M+1) correlación cruzada, recortada para
+        ser directamente comparable con correlacion_directa().
     """
-    N, M = len(y), len(x)
-    L = N + M - 1  # Longitud con zero-padding para correlación lineal
+    N = len(y)
+    M = len(x)
+    L_minimo = N + M - 1
+    L = siguiente_potencia_dos(L_minimo)
 
-    Y = np.fft.fft(y, n=L)
-    X = np.fft.fft(x, n=L)
+    # Zero-padding: la funcion fft() trabaja con listas,
+    # por eso se convierte de arreglo de numpy a lista de Python.
+    y_pad = list(y) + [0.0] * (L - N)
+    x_pad = list(x) + [0.0] * (L - M)
 
-    R_completa = np.fft.ifft(Y * np.conj(X)).real
-    return R_completa[: N - M + 1]
+    Y = fft(y_pad)
+    X = fft(x_pad)
+
+    # Multiplicacion en frecuencia por el conjugado (teorema de convolucion)
+    producto = [Y[k] * X[k].conjugate() for k in range(L)]
+
+    R_completa = ifft_propia(producto)
+
+    # Nos quedamos solo con los desplazamientos "validos" (0..N-M), que
+    # es la misma region que entrega correlacion_directa(). Se toma la
+    # parte real porque, en teoria, la correlacion de señales reales es
+    # real; cualquier parte imaginaria remanente es error numerico de
+    # punto flotante.
+    R = np.array([muestra.real for muestra in R_completa[: N - M + 1]])
+    return R
 
 
 def estimar_retardo(R, fs):
@@ -130,3 +217,5 @@ def encontrar_picos(R, fs, umbral_relativo=0.5, distancia_min_muestras=50):
 
 if __name__ == "__main__":
     print("Módulo de funciones de detección de ecos cargado.")
+    print("Correlación via FFT usa la implementación de Cooley-Tukey")
+    print("(experimentos_fft.fft), NO se usa np.fft en ningún punto de este archivo.")

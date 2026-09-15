@@ -4,7 +4,7 @@ experimentos y generar las imagenes que se deben incluir en el documento
 tecnico:
 
     Experimento 1: Caso base (un eco, poco ruido)
-                    -> senal Tx, senal Rx, correlacion directa vs FFT
+                    -> señal Tx, señal Rx, correlacion directa vs FFT
     Experimento 2: Multiples ecos (varios "objetos")
                     -> deteccion de varios picos de correlacion
     Experimento 3: Robustez ante ruido
@@ -12,7 +12,6 @@ tecnico:
     Experimento 4: Comparacion de tiempo de ejecucion
                     -> directa (O(N*M)) vs FFT (O(N log N))
 
-Cada figura se guarda en la carpeta 'figuras/'.
 ==========================================================================
 """
 
@@ -74,7 +73,7 @@ from deteccion_ecos import (
 #   apenas ~3 cm, aunque el pulso dure 10 ms (bastante mas largo que
 #   eso en distancia equivalente). Esto se comprueba en el
 #   Experimento 2, donde 3 ecos que se ven totalmente superpuestos en
-#   la senal cruda (Fig. 4, panel superior) se separan claramente en
+#   la señal cruda (Fig. 4, panel superior) se separan claramente en
 #   la correlacion (Fig. 4, panel inferior).
 #
 # RETARDOS Y ATENUACIONES SIMULADAS
@@ -142,10 +141,10 @@ def experimento_1_caso_base():
     mostrar_resultado_delay("Experimento 1 (un eco)", retardos_m[0],
                              n_directo, n_fft, FS)
 
-    # --- Figura: senal transmitida y recibida ---
+    # --- Figura: señal transmitida y recibida ---
     fig, axs = plt.subplots(2, 1, figsize=(9, 6), sharex=False)
     axs[0].plot(t_x * 1000, x, color="tab:blue")
-    axs[0].set_title("Senal transmitida (chirp conocido)")
+    axs[0].set_title("Señal transmitida (chirp conocido)")
     axs[0].set_xlabel("Tiempo [ms]")
     axs[0].set_ylabel("Amplitud")
     axs[0].grid(True, alpha=0.3)
@@ -153,14 +152,14 @@ def experimento_1_caso_base():
     axs[1].plot(t_y * 1000, y, color="tab:orange")
     axs[1].axvline(retardo_real_s * 1000, color="green", linestyle="--",
                     label=f"Retardo real = {retardo_real_s*1000:.1f} ms")
-    axs[1].set_title("Senal recibida (transmision directa + eco + ruido)")
+    axs[1].set_title("Señal recibida (transmision directa + eco + ruido)")
     axs[1].set_xlabel("Tiempo [ms]")
     axs[1].set_ylabel("Amplitud")
     axs[1].legend()
     axs[1].grid(True, alpha=0.3)
 
     plt.tight_layout()
-    plt.savefig(f"{CARPETA_SALIDA}/1_senales_tx_rx.png", dpi=150)
+    plt.savefig(f"{CARPETA_SALIDA}/1_señales_tx_rx.png", dpi=150)
     plt.close()
 
     # --- Figura: correlacion directa vs FFT ---
@@ -237,7 +236,7 @@ def experimento_2_multiples_ecos():
     axs[0].plot(t_y * 1000, y, color="tab:orange")
     for r in retardos_reales_s:
         axs[0].axvline(r * 1000, color="green", linestyle="--", alpha=0.6)
-    axs[0].set_title("Senal recibida con 3 objetos (ecos superpuestos + ruido)")
+    axs[0].set_title("Señal recibida con 3 objetos (ecos superpuestos + ruido)")
     axs[0].set_xlabel("Tiempo [ms]")
     axs[0].set_ylabel("Amplitud")
     axs[0].grid(True, alpha=0.3)
@@ -300,12 +299,27 @@ def experimento_3_robustez_ruido():
 # ==========================================================================
 # EXPERIMENTO 4: Comparacion de tiempo de ejecucion (directa vs FFT)
 # ==========================================================================
-# ==========================================================================
-# EXPERIMENTO 4: Comparacion de tiempo de ejecucion (directa vs FFT)
-# ==========================================================================
+#
+# NOTA METODOLOGICA IMPORTANTE (para explicar en el documento):
+#
+# 'correlacion_fft' ahora usa la nuestra FFT (experimentos_fft.py).
+# Esto significa que, aunque el ALGORITMO tiene menos operaciones
+# (N log N contra N*M), cada llamada recursiva en Python puro tiene un
+# costo de interprete que puede pesar mas que
+# el ahorro algoritmico para estos tamanos de N. Por eso es normal (hay que
+# explicarlo en el documento) que en este experimento
+# la correlacion DIRECTA salga mas rapida en tiempo de reloj, aunque la
+# FFT gane en numero de operaciones. Esta es la diferencia clasica entre
+# "complejidad algoritmica" (Big-O) y "rendimiento real de la
+# implementacion": el mismo patron se observo en la Parte 2
+# del proyecto al comparar DFT vs FFT (ahi la FFT gano en tiempo real
+# porque se comparaba contra una DFT mucho mas costosa, O(N^2), mientras
+# que aqui se compara contra una correlacion directa que usa np.dot
+# vectorizado de numpy, mucho mas eficiente que un bucle en Python puro).
+# --------------------------------------------------------------------------
 def experimento_4_tiempos_ejecucion():
     tamanos_N = [500, 1000, 2000, 4000, 8000, 16000, 32000, 64000]
-    M = 440  # largo fijo de la plantilla (senal conocida), ~10 ms a 44100 Hz
+    M = 440  # largo fijo de la plantilla (señal conocida), ~10 ms a 44100 Hz
     REPETICIONES = 5  # se repite cada medicion y se toma el minimo, para
                        # reducir el ruido de medicion (interrupciones del SO, etc.)
 
@@ -334,16 +348,17 @@ def experimento_4_tiempos_ejecucion():
         tiempos_fft.append(min(muestras_fft))
 
     print("--- Experimento 4 (tiempos de ejecucion) ---")
-    print(f"{'N':>8} | {'Directa [s]':>12} | {'FFT [s]':>12} | {'Aceleracion':>12}")
+    print(f"{'N':>8} | {'Directa [s]':>12} | {'FFT [s]':>15} | {'Razon':>10}")
     for N, td, tf in zip(tamanos_N, tiempos_directa, tiempos_fft):
-        print(f"{N:>8} | {td:>12.6f} | {tf:>12.6f} | {td/tf:>11.1f}x")
+        print(f"{N:>8} | {td:>12.6f} | {tf:>15.6f} | {tf/td:>9.1f}x mas lenta")
     print()
 
     plt.figure(figsize=(8, 5))
     plt.plot(tamanos_N, tiempos_directa, "o-", label="Correlacion directa (O(N*M))")
-    plt.plot(tamanos_N, tiempos_fft, "s-", label="Correlacion via FFT (O(N log N))")
+    plt.plot(tamanos_N, tiempos_fft, "s-", color="tab:red",
+              label="Correlacion via FFT (O(N log N)")
     plt.yscale("log")
-    plt.xlabel("Tamano de la senal recibida (N) [muestras]")
+    plt.xlabel("Tamano de la señal recibida (N) [muestras]")
     plt.ylabel("Tiempo de ejecucion [s] (escala log)")
     plt.title("Comparacion de tiempo de ejecucion: correlacion directa vs FFT")
     plt.legend()
