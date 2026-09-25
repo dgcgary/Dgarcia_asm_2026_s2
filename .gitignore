@@ -1,2 +1,34 @@
-figuras/
+# ============================================================================
+# Git Ignore - CE1110 Radar Acústico Monostático
+# ============================================================================
+
+# PlatformIO - Archivos de compilación temporal y toolchains
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Archivos binarios de microcontrolador
+*.bin
+*.elf
+*.hex
+*.o
+*.d
+
+# Python
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Salidas de figuras locales
+figuras/
+*.png
+
+# VS Code (excepto configuración básica)
+.vscode/.browse.c_cpp.db*
+.vscode/ipch/
+.vscode/.ropeproject
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
