@@ -30,8 +30,9 @@
 // ----------------------------------------------------------------------------
 // 3. DIMENSIONAMIENTO DE BÚFERES Y FFT
 // ----------------------------------------------------------------------------
-// Pulso transmitido: 64 muestras = 6.4 ms a 10 kHz
-#define N_PULSO_TX          64          
+// Pulso transmitido: 32 muestras = 3.2 ms a 10 kHz
+// (se acorta de 64 a 32 para que la cola de resonancia del parlante muera más rápido)
+#define N_PULSO_TX          32          
 
 // Búfer de captura recibida: 256 muestras = 25.6 ms a 10 kHz (~4.3 metros máx)
 #define N_CAPTURA_RX        256         
@@ -45,9 +46,11 @@
 // ----------------------------------------------------------------------------
 // 4. ZONA CIEGA Y UMBRALES DE DETECCIÓN
 // ----------------------------------------------------------------------------
-// Ignora las primeras 12 muestras (~20 cm) validadas en el Test 04 de acople directo
-#define ZONA_CIEGA_MUESTRAS 12    
-#define UMBRAL_CORR_MINIMO  100.0f // Amplitud mínima de correlación para eco válido
+// Ignora las primeras 22 muestras (~37.7 cm) para tapar completamente
+// la cola de resonancia del parlante + acople directo hacia el micrófono
+#define ZONA_CIEGA_MUESTRAS 22    
+#define UMBRAL_CORR_MINIMO  500.0f  // subido de 100 a 500: el ruido de fondo ronda 20-50,
+                                     // así que 500 da margen de sobra sin descartar ecos reales
 
 // ----------------------------------------------------------------------------
 // 5. CONFIGURACIÓN DE OPERACIÓN

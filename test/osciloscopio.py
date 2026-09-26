@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from collections import deque
 
-PUERTO = '/dev/ttyUSB0'
+PUERTO = 'com3' if sys.platform.startswith('win') else '/dev/ttyUSB0'
 MAX_PUNTOS = 250
 
 # Intentar usar pyserial si está instalado, si no, usar lectura nativa de Linux
@@ -47,7 +47,7 @@ buffer_x = list(range(MAX_PUNTOS))
 fig, ax = plt.subplots(figsize=(10, 5))
 line, = ax.plot(buffer_x, buffer_y, color='tab:blue', lw=1.5)
 ax.set_ylim(0.0, 3.3)
-ax.set_title("Osciloscopio en Vivo - Micrófono HW-484 (GPIO 34)", fontsize=12)
+ax.set_title("Osciloscopio en Vivo - Micrófono MAX4466 (GPIO 34)", fontsize=12)
 ax.set_xlabel("Muestras recientes")
 ax.set_ylabel("Voltaje (V)")
 ax.axhline(1.34, color='red', linestyle='--', alpha=0.5, label='Offset DC (~1.34V)')
@@ -67,8 +67,7 @@ def actualizar(frame):
                 pass
         elif "Vpp (Sonido):" in linea:
             try:
-                # Si viene en formato Vpp
-                val_str = linea.split("Offset DC:")[1].split("V")[0].strip()
+                val_str = linea.split("Vpp (Sonido):")[1].split("V")[0].strip()
                 buffer_y.append(float(val_str))
             except Exception:
                 pass
