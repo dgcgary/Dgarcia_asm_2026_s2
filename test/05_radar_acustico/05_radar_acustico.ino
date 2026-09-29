@@ -32,13 +32,13 @@ void setup() {
     dac_output_enable(DAC_CHANNEL_1);
     dac_output_voltage(DAC_CHANNEL_1, 128);
 
-    dsp_sintetizar_pulso(dac_pulso_tx, ref_pulso_tx, N_PULSO_TX, FREQ_SONAR_HZ, (float)FS_HZ);
+    dsp_sintetizar_pulso(dac_pulso_tx, ref_pulso_tx, N_PULSO_TX, F0_SONAR_HZ, F1_SONAR_HZ, (float)FS_HZ);
 
     Serial.println("\n=========================================================");
     Serial.println(" CE1110: RADAR ACUSTICO MONOSTATICO - ESP32 INICIALIZADO ");
     Serial.println("=========================================================");
     Serial.printf(" Frecuencia de muestreo (fs) : %d Hz (Ts = %d us)\n", FS_HZ, TS_US);
-    Serial.printf(" Frecuencia de sondeo (f0)   : %.1f Hz\n", FREQ_SONAR_HZ);
+    Serial.printf(" Barrido de sondeo (chirp)   : %.0f Hz -> %.0f Hz\n", F0_SONAR_HZ, F1_SONAR_HZ);
     Serial.printf(" Duracion de pulso (Tx)      : %d muestras (%.2f ms)\n", N_PULSO_TX, (float)N_PULSO_TX / FS_HZ * 1000.0f);
     Serial.printf(" Ventana de escucha (Rx)     : %d muestras (%.2f ms)\n", N_CAPTURA_RX, (float)N_CAPTURA_RX / FS_HZ * 1000.0f);
     Serial.printf(" FFT Zero-Padding (N_FFT)    : %d puntos (Radix-2)\n", N_FFT_PUNTOS);

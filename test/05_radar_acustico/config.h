@@ -24,7 +24,8 @@
 #define FS_HZ               10000       // Frecuencia de muestreo (10 kHz -> Ts = 100 us)
 #define TS_US               (1000000 / FS_HZ) // 100 microsegundos
 
-#define FREQ_SONAR_HZ       1500.0f     // Frecuencia optimizada a 1.5 kHz
+#define F0_SONAR_HZ         1000.0f     // frecuencia inicial del chirp
+#define F1_SONAR_HZ         3000.0f     // frecuencia final del chirp
 #define VEL_SONIDO_MS       343.0f      // Velocidad del sonido en m/s a 20°C
 
 // ----------------------------------------------------------------------------
@@ -55,7 +56,7 @@
 // ----------------------------------------------------------------------------
 // 5. CONFIGURACIÓN DE OPERACIÓN
 // ----------------------------------------------------------------------------
-#define PERIODO_DISPARO_MS  250   // 4 disparos por segundo
+#define PERIODO_DISPARO_MS  500   // 2 disparos por segundo
 #define VELOCIDAD_SERIAL    115200
 
 #endif // CONFIG_H
