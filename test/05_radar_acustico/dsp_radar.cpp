@@ -9,12 +9,19 @@
 #include "dsp_radar.h"
 #include <math.h>
 
-void dsp_sintetizar_pulso(uint8_t* dac_out, float* ref_out, int n_puntos, float f0, float fs) {
+void dsp_sintetizar_pulso(uint8_t* dac_out, float* ref_out, int n_puntos, float f0, float f1, float fs) {
+    float duracion = (float)n_puntos / fs;
+    float k = (f1 - f0) / duracion;  // tasa de barrido (chirp rate) en Hz/s
+
     for (int n = 0; n < n_puntos; n++) {
         float t = (float)n / fs;
+
         // Ventana de Hann para suavizar el inicio y fin del pulso acústico
         float ventana = 0.5f * (1.0f - cosf(2.0f * PI * n / (n_puntos - 1)));
-        float tono = sinf(2.0f * PI * f0 * t);
+
+        // Fase instantanea del chirp: phi(t) = 2*pi*(f0*t + 0.5*k*t^2)
+        float fase = 2.0f * PI * (f0 * t + 0.5f * k * t * t);
+        float tono = sinf(fase);
         float senal_modulada = tono * ventana;
 
         // Referencia normalizada para correlación cruzada

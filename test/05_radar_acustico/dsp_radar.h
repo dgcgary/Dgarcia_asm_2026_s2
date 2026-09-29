@@ -40,10 +40,16 @@ struct Complex {
 };
 
 /**
- * Sintetiza la señal de sondeo acústico s[n] con modulación Hann
- * para evitar transitorios bruscos al activar/desactivar el DAC.
+ * Sintetiza la señal de sondeo acústico s[n] como un CHIRP LINEAL
+ * (barrido de frecuencia de f0 a f1) con modulación Hann para evitar
+ * transitorios bruscos al activar/desactivar el DAC.
+ *
+ * Se usa un chirp en vez de un tono fijo porque su autocorrelación
+ * tiene un pico mucho más angosto y dominante (menos lóbulos laterales
+ * ambiguos), lo que reduce falsos positivos al buscar el eco cuando
+ * la señal recibida es débil (objeto lejano).
  */
-void dsp_sintetizar_pulso(uint8_t* dac_out, float* ref_out, int n_puntos, float f0, float fs);
+void dsp_sintetizar_pulso(uint8_t* dac_out, float* ref_out, int n_puntos, float f0, float f1, float fs);
 
 /**
  * Calcula la Transformada Rápida de Fourier (FFT) o su Inversa (IFFT)

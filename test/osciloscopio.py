@@ -46,7 +46,7 @@ buffer_x = list(range(MAX_PUNTOS))
 
 fig, ax = plt.subplots(figsize=(10, 5))
 line, = ax.plot(buffer_x, buffer_y, color='tab:blue', lw=1.5)
-ax.set_ylim(0.0, 3.3)
+ax.set_ylim(0.0, max(buffer_y) * 1.2 + 0.1)
 ax.set_title("Osciloscopio en Vivo - Micrófono MAX4466 (GPIO 34)", fontsize=12)
 ax.set_xlabel("Muestras recientes")
 ax.set_ylabel("Voltaje (V)")
