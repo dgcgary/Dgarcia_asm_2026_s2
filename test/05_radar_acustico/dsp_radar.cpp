@@ -190,7 +190,7 @@ float FiltroMediana::actualizar(float nueva_distancia) {
 bool dsp_estimar_distancia(
     const float* R, int n_corr,
     int zona_ciega, float fs, float vel_sonido,
-    float umbral_min, float max_dist_cm,
+    float umbral_min,
     int& m_pico, float& tau_ms, float& dist_cm, float& amp_pico
 ) {
     if (zona_ciega >= n_corr) return false;
@@ -223,10 +223,6 @@ bool dsp_estimar_distancia(
     // Distancia monostática: d = (v_s * tau) / 2
     float dist_metros = (vel_sonido * ((float)m_pico / fs)) / 2.0f;
     dist_cm = dist_metros * 100.0f;
-
-    if (dist_cm > max_dist_cm) {
-        return false;
-    }
 
     return true;
 }

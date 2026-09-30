@@ -61,7 +61,7 @@
 // ----------------------------------------------------------------------------
 // 5. CONFIGURACIÓN DE OPERACIÓN
 // ----------------------------------------------------------------------------
-#define PERIODO_DISPARO_MS  250   // 4 disparos por segundo (tiempo real fluido)
+#define PERIODO_DISPARO_MS  1000  // 4 disparos por segundo (tiempo real fluido)
 #define VELOCIDAD_SERIAL    115200
 
 #endif // CONFIG_H

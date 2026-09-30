@@ -108,7 +108,7 @@ void dsp_correlacion_cruzada(
 bool dsp_estimar_distancia(
     const float* R, int n_corr,
     int zona_ciega, float fs, float vel_sonido,
-    float umbral_min, float max_dist_cm,
+    float umbral_min,
     int& m_pico, float& tau_ms, float& dist_cm, float& amp_pico
 );
 

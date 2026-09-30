@@ -118,9 +118,12 @@ void loop() {
     bool eco_detectado = dsp_estimar_distancia(
         corr_out, N_CORRELACION,
         ZONA_CIEGA_MUESTRAS, fs_real, VEL_SONIDO_MS,
-        UMBRAL_CORR_MINIMO, MAX_DISTANCIA_CM,
+        UMBRAL_CORR_MINIMO,
         m_pico, tau_ms, dist_cruda_cm, amp_pico
     );
+    if (eco_detectado && dist_cruda_cm > MAX_DISTANCIA_CM) {
+        eco_detectado = false;
+    }
 
     // 5. Filtrado de Estabilidad por Mediana Móvil
     float dist_filtrada_cm = 0.0f;
