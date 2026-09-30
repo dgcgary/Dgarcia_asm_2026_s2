@@ -1,8 +1,6 @@
-/**
- * Test 05: Radar acustico
- * Este test implementa un radar acustico monostatico utilizando el ESP32.
- * Emite un pulso chirp y detecta los ecos reflejados mediante un microfono.
- * Calcula la distancia a los objetos utilizando correlacion cruzada y filtros DSP.
+/*
+ * Radar Acustico Monostatico - ESP32 (Modo Serial)
+ * imprime en el serial monitor las mediciones del radar.
  */
 
 #include "driver/dac.h"
@@ -42,7 +40,7 @@ void setup() {
     filtro_bp.init(2000.0f, 2000.0f, (float)FS_HZ);
     filtro_med.init(5);
 
-    Serial.println("\nRadar Acustico Monostatico - ESP32");
+    Serial.println("\nRadar Acustico Monostatico - ESP32 (Modo Serial)");
     Serial.printf("Frecuencia nominal: %d Hz (Ts = %d us)\n", FS_HZ, TS_US);
     Serial.printf("Pulso chirp: %.0f Hz -> %.0f Hz (%d muestras, %.2f ms)\n", 
                   F0_SONAR_HZ, F1_SONAR_HZ, N_PULSO_TX, (float)N_PULSO_TX / FS_HZ * 1000.0f);

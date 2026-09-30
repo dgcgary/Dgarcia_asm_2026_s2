@@ -1,9 +1,7 @@
 /**
- * ============================================================================
- * CE1110 - Análisis de Señales Mixtas | Instituto Tecnológico de Costa Rica
- * Proyecto: Radar Acústico Monostático
- * Archivo: 04_loopback_acustico.ino - TEST 04: Loopback Acústico
- * ============================================================================
+ * Test 04: Loopback acustico
+ * Este test emite pulsos acusticos y los detecta mediante un microfono.
+ * Mide la correlacion entre la señal emitida y la capturada para verificar el acople directo.
  */
 
 #include "driver/dac.h"
@@ -35,12 +33,9 @@ void setup() {
 
     dsp_sintetizar_pulso(dac_pulso_tx, ref_pulso_tx, N_PULSO_TX, FREQ_SONAR_HZ, (float)FS_HZ);
 
-    Serial.println("\n==========================================================");
-    Serial.println("=== TEST 04: LOOPBACK ACÚSTICO (DETECCIÓN PULSO PROPIO) ===");
-    Serial.println("==========================================================");
-    Serial.println("El parlante emitira pulsos cortos 'tic' de 2.5 kHz.");
-    Serial.println("El microfono capturara el sonido y la FFT calculara la correlacion.");
-    Serial.println("Buscamos un pico fuerte en los primeros indices (m = 0..5).\n");
+    Serial.println("\nTest 04: Loopback acustico (deteccion de pulso propio)");
+    Serial.println("El parlante emite pulsos cortos y el microfono captura el sonido.");
+    Serial.println("La FFT calcula la correlacion para verificar el acople directo.\n");
 }
 
 void loop() {
@@ -52,7 +47,7 @@ void loop() {
 
     digitalWrite(PIN_LED_STATUS, HIGH);
 
-    // 1. Disparo de Pulso y Captura Sincronizada a 10 kHz
+    // 1. emite el pulso y captura la senal en el ADC a 10 kHz
     for (int n = 0; n < N_CAPTURA_RX; n++) {
         unsigned long t0 = micros();
 
@@ -65,13 +60,13 @@ void loop() {
         adc_raw_rx[n] = analogRead(PIN_RX_ADC);
 
         while (micros() - t0 < TS_US) {
-            // Espera activa a 100 us
+            // espera activa a 100 us
         }
     }
     dac_output_voltage(DAC_CHANNEL_1, 128);
     digitalWrite(PIN_LED_STATUS, LOW);
 
-    // 2. Preprocesamiento: Remover Offset DC
+    // 2. remueve el offset DC de la captura
     float suma_adc = 0.0f;
     for (int n = 0; n < N_CAPTURA_RX; n++) {
         suma_adc += adc_raw_rx[n];
@@ -82,12 +77,12 @@ void loop() {
         senal_rx[n] = (float)adc_raw_rx[n] - media_dc;
     }
 
-    // 3. DSP: Correlación Cruzada vía FFT Radix-2
+    // 3. calcula la correlacion cruzada mediante FFT radix-2
     unsigned long t_dsp_0 = micros();
     dsp_correlacion_cruzada(senal_rx, N_CAPTURA_RX, ref_pulso_tx, N_PULSO_TX, corr_out, N_FFT_PUNTOS);
     unsigned long t_dsp_us = micros() - t_dsp_0;
 
-    // 4. Búsqueda del Pico Máximo Absoluto
+    // 4. busca el pico maximo absoluto
     float max_corr = 0.0f;
     int m_pico = 0;
     for (int m = 0; m < N_CORRELACION; m++) {
@@ -100,17 +95,16 @@ void loop() {
 
     float retardo_ms = ((float)m_pico / (float)FS_HZ) * 1000.0f;
 
-    // 5. Salida y Diagnóstico
+    // 5. imprime los datos y el perfil de correlacion
     Serial.println("----------------------------------------------------------------------");
     Serial.printf("[PULSO #%3d] Pico en muestra m = %2d (%4.2f ms) | Amplitud Corr: %6.1f | DSP: %lu us\n",
                   contador_pulsos, m_pico, retardo_ms, max_corr, t_dsp_us);
 
-    // Mini-perfil ASCII de correlación de las primeras 35 muestras
     Serial.print("Perfil Corr [m=0..34]: ");
     for (int m = 0; m < 35; m++) {
         float norm = (max_corr > 0.0f) ? (fabsf(corr_out[m]) / max_corr) : 0.0f;
         if (m == m_pico) {
-            Serial.print("*"); // Pico detectado
+            Serial.print("*"); // pico detectado
         } else if (norm > 0.6f) {
             Serial.print("#");
         } else if (norm > 0.3f) {
@@ -122,9 +116,9 @@ void loop() {
     Serial.println();
 
     if (m_pico <= 8 && max_corr > 80.0f) {
-        Serial.println(">>> [EXITO] Acople acustico directo detectado perfectamente.");
+        Serial.println(">>> [EXITO] Acople acustico directo detectado correctamente.");
     } else if (max_corr <= 80.0f) {
-        Serial.println(">>> [AVISO] Pulso debil. Sube ligeramente el volumen del PAM8403.");
+        Serial.println(">>> [AVISO] Pulso debil. Ajusta ligeramente el volumen del PAM8403.");
     } else {
         Serial.println(">>> [ECO DETECTADO]");
     }

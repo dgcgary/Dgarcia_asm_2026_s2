@@ -8,7 +8,7 @@
         {
             "name": "PlatformIO",
             "includePath": [
-                "/home/saddygr/Documentos/GitHub/Dgarcia_asm_2026_s2/test/05_radar_acustico",
+                "/home/saddygr/Documentos/GitHub/Dgarcia_asm_2026_s2/radar_serial",
                 "/home/saddygr/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
                 "/home/saddygr/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include",
                 "/home/saddygr/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include/esp_additions/freertos",
@@ -243,7 +243,7 @@
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
-                    "/home/saddygr/Documentos/GitHub/Dgarcia_asm_2026_s2/test/05_radar_acustico",
+                    "/home/saddygr/Documentos/GitHub/Dgarcia_asm_2026_s2/radar_serial",
                     "/home/saddygr/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
                     "/home/saddygr/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include",
                     "/home/saddygr/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include/esp_additions/freertos",

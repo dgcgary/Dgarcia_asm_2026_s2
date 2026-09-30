@@ -1,11 +1,3 @@
-/**
- * ============================================================================
- * CE1110 - Análisis de Señales Mixtas | Instituto Tecnológico de Costa Rica
- * Proyecto: Radar Acústico Monostático
- * Archivo: dsp_radar.h - Declaraciones del Pipeline DSP para Loopback
- * ============================================================================
- */
-
 #ifndef DSP_RADAR_H
 #define DSP_RADAR_H
 
@@ -17,6 +9,7 @@
 #define PI 3.14159265358979323846f
 #endif
 
+// numeros complejos para calculo de la FFT
 struct Complex {
     float real;
     float imag;

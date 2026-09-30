@@ -141,44 +141,6 @@ float BiquadBandpass::process(float x) {
     return y;
 }
 
-void FiltroMediana::init(int n_ventana) {
-    if (n_ventana > VENTANA_MAX) n_ventana = VENTANA_MAX;
-    if (n_ventana < 3) n_ventana = 3;
-    tamano = n_ventana;
-    reset();
-}
-
-void FiltroMediana::reset() {
-    indice = 0;
-    llenos = 0;
-    for (int i = 0; i < VENTANA_MAX; i++) {
-        buffer[i] = 0.0f;
-    }
-}
-
-float FiltroMediana::actualizar(float nueva_distancia) {
-    buffer[indice] = nueva_distancia;
-    indice = (indice + 1) % tamano;
-    if (llenos < tamano) llenos++;
-
-    // ordena una copia local para extraer la mediana
-    float temp[VENTANA_MAX];
-    for (int i = 0; i < llenos; i++) {
-        temp[i] = buffer[i];
-    }
-    for (int i = 1; i < llenos; i++) {
-        float clave = temp[i];
-        int j = i - 1;
-        while (j >= 0 && temp[j] > clave) {
-            temp[j + 1] = temp[j];
-            j--;
-        }
-        temp[j + 1] = clave;
-    }
-
-    return temp[llenos / 2];
-}
-
 bool dsp_estimar_distancia(
     const float* R, int n_corr,
     int zona_ciega, float fs, float vel_sonido,

@@ -1,18 +1,10 @@
-/**
- * ============================================================================
- * CE1110 - Análisis de Señales Mixtas | Instituto Tecnológico de Costa Rica
- * Proyecto: Radar Acústico Monostático
- * Archivo: dsp_radar.cpp - Implementación DSP para Loopback
- * ============================================================================
- */
-
 #include "dsp_radar.h"
 #include <math.h>
 
 void dsp_sintetizar_pulso(uint8_t* dac_out, float* ref_out, int n_puntos, float f0, float fs) {
     for (int n = 0; n < n_puntos; n++) {
         float t = (float)n / fs;
-        // Ventana de Hann para suavizar el pulso
+        // ventana de Hann para suavizar el pulso
         float ventana = 0.5f * (1.0f - cosf(2.0f * PI * n / (n_puntos - 1)));
         float tono = sinf(2.0f * PI * f0 * t);
         float senal_modulada = tono * ventana;

@@ -1,12 +1,18 @@
+/**
+ * Test 06: Diagnostico del radar acustico
+ * Este test permite diagnosticar el funcionamiento del radar acustico implementado en el test 5.
+ * Envía los datos completos en formato JSON para su análisis y visualización en Python.
+ */
+
 #include <Arduino.h>
 #include "driver/dac.h"
 #include "../05_radar_acustico/config.h"
 #include "../05_radar_acustico/dsp_radar.h"
 
-// Diagnóstico del test 5: mismas señales, parámetros y búsqueda de pico.
-// No se aplica mediana: interesa observar cada disparo por separado.
+// diagnostico del test 5: envia los datos completos en JSON para graficar en Python
+// no aplica filtro de mediana porque interesa observar cada disparo individualmente
 static_assert(N_FFT_PUNTOS >= N_CAPTURA_RX + N_PULSO_TX - 1,
-              "La correlación lineal necesita suficiente zero-padding");
+              "la correlacion lineal necesita suficiente zero-padding");
 
 uint8_t tx_dac[N_PULSO_TX];
 float tx_ref[N_PULSO_TX];
@@ -17,8 +23,7 @@ float corr_cruda[N_CORRELACION], corr_filtrada[N_CORRELACION];
 unsigned long ultimo_disparo = 0;
 unsigned long id_disparo = 0;
 
-// Mismo biquad del test 5. Se reinicia en cada captura independiente:
-// durante la pausa entre disparos no se están adquiriendo muestras.
+// filtro biquad pasa banda para la senal de recepcion
 struct BandPass {
     float b0, b2, a1, a2;
     float x1 = 0, x2 = 0, y1 = 0, y2 = 0;
@@ -60,11 +65,11 @@ void setup() {
     dac_output_voltage(DAC_CHANNEL_1, 128);
     dsp_sintetizar_pulso(tx_dac, tx_ref, N_PULSO_TX,
                         F0_SONAR_HZ, F1_SONAR_HZ, (float)FS_HZ);
-    Serial.println("TEST 6: abrir test/diagnostico_radar.py; una linea JSON por disparo.");
+    Serial.println("TEST 6: abrir test/diagnostico_radar.py para ver las graficas.");
 }
 
 void loop() {
-    // Dos segundos permiten enviar la captura completa a 115200 baudios.
+    // pausa de 2 segundos para dar tiempo a transmitir el JSON completo por serial
     if (millis() - ultimo_disparo < 2000) return;
     ultimo_disparo = millis();
     digitalWrite(PIN_LED_STATUS, HIGH);
@@ -109,8 +114,7 @@ void loop() {
     const bool fuera_rango = detectado && distancia_cm > MAX_DISTANCIA_CM;
     if (fuera_rango) detectado = false;
 
-    // No imprimir nada durante la adquisición. Este protocolo solo envía
-    // muestras ya capturadas; Python dibuja, el ESP32 hace el DSP.
+    // no imprime nada durante la adquisicion; envia el JSON al terminar el DSP
     Serial.printf("{\"tipo\":\"radar6\",\"id\":%lu,\"fs_nominal\":%d,"
         "\"fs_real\":%.3f,\"captura_us\":%lu,\"dsp_us\":%lu,"
         "\"f0_nominal\":%.1f,\"f1_nominal\":%.1f,\"vel_sonido\":%.1f,"

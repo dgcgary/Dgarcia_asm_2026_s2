@@ -1,2 +1,2 @@
-// Usar exactamente la FFT y correlación del test 5, sin mantener otra copia.
+// reutiliza la implementacion dsp del test 5 para evitar duplicacion de codigo
 #include "../05_radar_acustico/dsp_radar.cpp"

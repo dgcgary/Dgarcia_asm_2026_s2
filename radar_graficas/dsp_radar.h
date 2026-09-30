@@ -41,19 +41,6 @@ struct BiquadBandpass {
     void reset();
 };
 
-// Filtro de mediana movil para descartar rebotes secundarios y estabilizar la lectura
-struct FiltroMediana {
-    static const int VENTANA_MAX = 7;
-    float buffer[VENTANA_MAX];
-    int tamano;
-    int indice;
-    int llenos;
-
-    void init(int n_ventana = 5);
-    void reset();
-    float actualizar(float nueva_distancia);
-};
-
 // Sintetiza el pulso chirp lineal con ventana Hann en memoria
 void dsp_sintetizar_pulso(uint8_t* dac_out, float* ref_out, int n_puntos, float f0, float f1, float fs);
 
