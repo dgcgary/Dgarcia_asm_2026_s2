@@ -27,10 +27,8 @@ env/
 figuras/
 *.png
 
-# VS Code (excepto configuración básica)
-.vscode/.browse.c_cpp.db*
-.vscode/ipch/
-.vscode/.ropeproject
+# VS Code
+.vscode/
 
 # Archivos del sistema operativo
 .DS_Store
