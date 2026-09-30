@@ -119,10 +119,78 @@ void dsp_correlacion_cruzada(
     }
 }
 
+void BiquadBandpass::init(float f_centro, float ancho_banda, float fs) {
+    float q = f_centro / ancho_banda;
+    float w0 = 2.0f * PI * f_centro / fs;
+    float alpha = sinf(w0) / (2.0f * q);
+    float a0 = 1.0f + alpha;
+
+    b0 = alpha / a0;
+    b2 = -alpha / a0;
+    a1 = -2.0f * cosf(w0) / a0;
+    a2 = (1.0f - alpha) / a0;
+
+    reset();
+}
+
+void BiquadBandpass::reset() {
+    x1 = 0.0f;
+    x2 = 0.0f;
+    y1 = 0.0f;
+    y2 = 0.0f;
+}
+
+float BiquadBandpass::process(float x) {
+    float y = b0 * x + b2 * x2 - a1 * y1 - a2 * y2;
+    x2 = x1;
+    x1 = x;
+    y2 = y1;
+    y1 = y;
+    return y;
+}
+
+void FiltroMediana::init(int n_ventana) {
+    if (n_ventana > VENTANA_MAX) n_ventana = VENTANA_MAX;
+    if (n_ventana < 3) n_ventana = 3;
+    tamano = n_ventana;
+    reset();
+}
+
+void FiltroMediana::reset() {
+    indice = 0;
+    llenos = 0;
+    for (int i = 0; i < VENTANA_MAX; i++) {
+        buffer[i] = 0.0f;
+    }
+}
+
+float FiltroMediana::actualizar(float nueva_distancia) {
+    buffer[indice] = nueva_distancia;
+    indice = (indice + 1) % tamano;
+    if (llenos < tamano) llenos++;
+
+    // Ordenamiento por inserción sobre una copia local
+    float temp[VENTANA_MAX];
+    for (int i = 0; i < llenos; i++) {
+        temp[i] = buffer[i];
+    }
+    for (int i = 1; i < llenos; i++) {
+        float clave = temp[i];
+        int j = i - 1;
+        while (j >= 0 && temp[j] > clave) {
+            temp[j + 1] = temp[j];
+            j--;
+        }
+        temp[j + 1] = clave;
+    }
+
+    return temp[llenos / 2];
+}
+
 bool dsp_estimar_distancia(
     const float* R, int n_corr,
     int zona_ciega, float fs, float vel_sonido,
-    float umbral_min,
+    float umbral_min, float max_dist_cm,
     int& m_pico, float& tau_ms, float& dist_cm, float& amp_pico
 ) {
     if (zona_ciega >= n_corr) return false;
@@ -155,6 +223,10 @@ bool dsp_estimar_distancia(
     // Distancia monostática: d = (v_s * tau) / 2
     float dist_metros = (vel_sonido * ((float)m_pico / fs)) / 2.0f;
     dist_cm = dist_metros * 100.0f;
+
+    if (dist_cm > max_dist_cm) {
+        return false;
+    }
 
     return true;
 }

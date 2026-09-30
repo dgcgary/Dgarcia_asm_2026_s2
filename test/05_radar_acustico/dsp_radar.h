@@ -49,6 +49,39 @@ struct Complex {
  * ambiguos), lo que reduce falsos positivos al buscar el eco cuando
  * la señal recibida es débil (objeto lejano).
  */
+/**
+ * Estructura de Filtro Pasa Banda Biquad IIR de 2do orden
+ * Diseñado para atenuar ruido fuera de la banda del chirp (1 kHz - 3 kHz).
+ */
+struct BiquadBandpass {
+    float b0, b2, a1, a2;
+    float x1, x2, y1, y2;
+
+    void init(float f_centro = 2000.0f, float ancho_banda = 2000.0f, float fs = 10000.0f);
+    float process(float x);
+    void reset();
+};
+
+/**
+ * Filtro de Mediana Móvil para supresión de valores atípicos (outliers/multitrayectoria)
+ */
+struct FiltroMediana {
+    static const int VENTANA_MAX = 7;
+    float buffer[VENTANA_MAX];
+    int tamano;
+    int indice;
+    int llenos;
+
+    void init(int n_ventana = 5);
+    void reset();
+    float actualizar(float nueva_distancia);
+};
+
+/**
+ * Sintetiza la señal de sondeo acústico s[n] como un CHIRP LINEAL
+ * (barrido de frecuencia de f0 a f1) con modulación Hann para evitar
+ * transitorios bruscos al activar/desactivar el DAC.
+ */
 void dsp_sintetizar_pulso(uint8_t* dac_out, float* ref_out, int n_puntos, float f0, float f1, float fs);
 
 /**
@@ -75,7 +108,7 @@ void dsp_correlacion_cruzada(
 bool dsp_estimar_distancia(
     const float* R, int n_corr,
     int zona_ciega, float fs, float vel_sonido,
-    float umbral_min,
+    float umbral_min, float max_dist_cm,
     int& m_pico, float& tau_ms, float& dist_cm, float& amp_pico
 );
 

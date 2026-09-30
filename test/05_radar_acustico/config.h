@@ -52,11 +52,16 @@
 #define ZONA_CIEGA_MUESTRAS 22    
 #define UMBRAL_CORR_MINIMO  500.0f  // subido de 100 a 500: el ruido de fondo ronda 20-50,
                                      // así que 500 da margen de sobra sin descartar ecos reales
+#define MAX_DISTANCIA_CM    250.0f  // Rango máximo de detección del radar (2.5 m)
+
+// Filtro de estabilidad para evitar saltos temporales (Test 5)
+#define HISTORIAL_DISTANCIAS 7
+#define TOLERANCIA_OUTLIER_CM 10.0f
 
 // ----------------------------------------------------------------------------
 // 5. CONFIGURACIÓN DE OPERACIÓN
 // ----------------------------------------------------------------------------
-#define PERIODO_DISPARO_MS  500   // 2 disparos por segundo
+#define PERIODO_DISPARO_MS  250   // 4 disparos por segundo (tiempo real fluido)
 #define VELOCIDAD_SERIAL    115200
 
 #endif // CONFIG_H
