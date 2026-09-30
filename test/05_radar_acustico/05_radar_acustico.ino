@@ -117,6 +117,10 @@ void loop() {
         UMBRAL_CORR_MINIMO,
         m_pico, tau_ms, dist_cruda_cm, amp_pico
     );
+    if (eco_detectado) {
+        dist_cruda_cm -= OFFSET_CALIBRACION_CM;
+        if (dist_cruda_cm < 0.0f) dist_cruda_cm = 0.0f;
+    }
     if (eco_detectado && dist_cruda_cm > MAX_DISTANCIA_CM) {
         eco_detectado = false;
     }

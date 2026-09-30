@@ -111,6 +111,10 @@ void loop() {
     bool detectado = dsp_estimar_distancia(corr_filtrada, N_CORRELACION,
         ZONA_CIEGA_MUESTRAS, fs_real, VEL_SONIDO_MS, UMBRAL_CORR_MINIMO,
         pico, tof_ms, distancia_cm, amplitud);
+    if (detectado) {
+        distancia_cm -= OFFSET_CALIBRACION_CM;
+        if (distancia_cm < 0.0f) distancia_cm = 0.0f;
+    }
     const bool fuera_rango = detectado && distancia_cm > MAX_DISTANCIA_CM;
     if (fuera_rango) detectado = false;
 

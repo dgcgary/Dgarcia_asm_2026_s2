@@ -22,8 +22,9 @@
 #define N_FFT_PUNTOS        512         // zero-padding para la fft radix-2 (512 >= 256 + 32 - 1)
 #define N_CORRELACION       (N_CAPTURA_RX - N_PULSO_TX + 1) // 225 puntos de correlacion lineal
 
-// Zona ciega y limites de deteccion
+// Zona ciega, calibracion y limites de deteccion
 #define ZONA_CIEGA_MUESTRAS 22          // ignora las primeras 22 muestras (38 cm) para tapar el sonido directo del parlante
+#define OFFSET_CALIBRACION_CM 10.0f     // compensa la profundidad del cono y retardo de transductores
 #define UMBRAL_CORR_MINIMO  500.0f      // nivel minimo de correlacion para validar un eco
 #define MAX_DISTANCIA_CM    250.0f      // alcance maximo util del radar
 

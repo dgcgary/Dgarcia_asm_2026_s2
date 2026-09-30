@@ -125,6 +125,10 @@ void loop() {
         ZONA_CIEGA_MUESTRAS, fs_real, VEL_SONIDO_MS, UMBRAL_CORR_MINIMO,
         m_pico, tof_ms, dist_cm, amp_pico
     );
+    if (detectado) {
+        dist_cm -= OFFSET_CALIBRACION_CM;
+        if (dist_cm < 0.0f) dist_cm = 0.0f;
+    }
     const bool fuera_rango = detectado && (dist_cm > MAX_DISTANCIA_CM);
     if (fuera_rango) {
         detectado = false;
