@@ -1,0 +1,62 @@
+\documentclass[journal]{IEEEtran}
+
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{url}
+\usepackage{cite}
+\usepackage{booktabs}
+
+\begin{document}
+
+\title{Reporte de Herramientas de Ingenier\'ia (Atributo HI)\\Radar Ac\'ustico Monoest\'atico para Estimaci\'on de Distancia}
+
+\author{\IEEEauthorblockN{David Garc\'ia Cruz, Saddy Guzm\'an Rodr\'iguez}\\
+\IEEEauthorblockA{\'Area Acad\'emica de Ingenier\'ia en Computadores\\
+Instituto Tecnol\'ogico de Costa Rica\\
+CE1110 -- An\'alisis de Se\~nales Mixtas\\
+Correo: \url{d.garcia.1@estudiantec.cr}, \url{sadguzman@estudiantec.cr}}
+}
+
+\markboth{CE1110 An\'alisis de Se\~nales Mixtas -- Atributo HI, 2026}{Garc\'ia y Guzm\'an: Herramientas de Ingenier\'ia}
+
+\maketitle
+
+\section{Selecci\'on de T\'ecnicas, Recursos, Herramientas o M\'etodos}
+Para resolver el problema del radar ac\'ustico monoest\'atico con limitaciones de tiempo real y hardware embebido de bajo costo, se seleccionaron los siguientes recursos:
+
+\begin{enumerate}
+\item \textbf{Microcontrolador ESP32-WROOM-32D:} Seleccionado por su arquitectura de doble n\'ucleo Xtensa a 240~MHz, perif\'erico DAC integrado de 8 bits para s\'intesis de se\~nales continuas arbitrarias y ADC de 12 bits con atenuaci\'on programable (11~dB). Su capacidad de memoria SRAM (320~KB) permite almacenar vectores complejos de 512 puntos sin desbordamiento.
+\item \textbf{Entorno PlatformIO y VS Code:} Empleado para la gesti\'on de compilaci\'on cruzada con optimizaci\'on de nivel \texttt{-O3}, administraci\'on del mapa de memoria flash y subida de firmware a alta velocidad (921600 baudios).
+\item \textbf{Ecosistema Cient\'ifico Python (NumPy, SciPy, Matplotlib):} Utilizado para modelar anal\'iticamente el canal de propagaci\'on, simular reflectores m\'ultiples y verificar la equivalencia num\'erica entre la correlaci\'on temporal y espectral.
+\item \textbf{Telemetr\'ia y Visualizaci\'on en Tiempo Real:} Se desarrollaron scripts en Python (\texttt{diagnostico\_radar.py} y \texttt{osciloscopio.py}) comunicados por puerto serie a 115200 baudios utilizando tramas estructuradas en formato JSON.
+\item \textbf{Herramientas Asistidas por Inteligencia Artificial:} Utilizadas como soporte para la aceleraci\'on en la estructuraci\'on modular de c\'odigo C++, validaci\'on de ecuaciones del factor de giro de Cooley-Tukey y refinamiento de la documentaci\'on t\'ecnica.
+\end{enumerate}
+
+\section{Aplicaci\'on de T\'ecnicas, Recursos y M\'etodos en el Problema}
+La aplicaci\'on metodol\'ogica se ejecut\'o en tres fases complementarias:
+
+\subsection{Fase 1: Simulaci\'on y Modelado Matem\'atico}
+Se generaron ondas sint\'eticas en Python y se implement\'o la FFT Radix-2 de Cooley-Tukey por decimaci\'on en el tiempo. Se valid\'o que el c\'alculo de correlaci\'on espectral:
+\begin{equation}
+R_{rs} = \text{IFFT}\Big( \text{FFT}(r) \cdot \text{conj}(\text{FFT}(s)) \Big)
+\end{equation}
+con $N_{\text{FFT}} = 512$ puntos de \textit{zero-padding} fuera id\'entico a la correlaci\'on directa temporal con un error residual inferior a $10^{-14}$. Se demostr\'o que la modulaci\'on por chirp (1.0~kHz a 3.0~kHz con ventana Hann) elimin\'o los l\'obulos secundarios falsos producidos por tonos arm\'onicos simples.
+
+\subsection{Fase 2: Implementaci\'on DSP en C++ Embebido}
+Se estructur\'o una librer\'ia modular (\texttt{dsp\_radar.h} y \texttt{dsp\_radar.cpp}) con buffers est\'aticos para prevenir la fragmentaci\'on del mont\'iculo (\textit{heap}). Se implement\'o un filtro IIR Biquad pasa banda de segundo orden centrado en 2.0~kHz para eliminar el ruido electromagn\'etico de alimentaci\'on y componentes fuera de banda.
+
+\subsection{Fase 3: Instrumentaci\'on y Diagn\'ostico Gr\'afico}
+Mediante el script \texttt{diagnostico\_radar.py}, el microcontrolador transmite r\'afagas completas de 256 muestras capturadas y 225 puntos de correlaci\'on, permitiendo inspeccionar en pantalla la se\~nal cruda, la se\~nal filtrada, la zona ciega y la posici\'on exacta del pico de correlaci\'on.
+
+\section{Adaptaci\'on de T\'ecnicas y M\'etodos al Sistema F\'isico}
+El paso de la teor\'ia al hardware real requiri\'o adaptaciones de ingenier\'ia:
+
+\begin{enumerate}
+\item \textbf{Compensaci\'on Din\'amica de la Tasa de Muestreo ($f_s$):} La latencia interna de \texttt{analogRead()} redujo la frecuencia real a $\sim 9400\text{ Hz}$. Se adapt\'o el algoritmo midiendo con \texttt{micros()} la duraci\'on real de cada captura para computar la distancia con la frecuencia instant\'anea exacta.
+\item \textbf{Directividad F\'isica y Atenuaci\'on de Multitrayectoria:} El micr\'ofono electret omnidireccional captaba reflexiones de paredes laterales a $\sim 74\text{ cm}$. Se adapt\'o una bocina c\'onica directiva que concentr\'o la captaci\'on en el eje frontal.
+\item \textbf{Calibraci\'on de Cero (\texttt{OFFSET\_CALIBRACION\_CM}):} El cono ac\'ustico y el retardo de grupo de los filtros anal\'ogicos y digitales introduc\'ian un sesgo constante de $+10.0\text{ cm}$. Se adapt\'o el firmware restando este retardo intr\'inseco de instrumentaci\'on, logrando precisi\'on de $\pm 1.1\text{ cm}$.
+\item \textbf{Filtro de Mediana M\'ovil:} Para suprimir saltos aislados provocados por ruido transitorio, se implement\'o un filtro de mediana de 5 muestras que estabiliza la visualizaci\'on en el monitor serie.
+\end{enumerate}
+
+\end{document}

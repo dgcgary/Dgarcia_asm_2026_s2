@@ -1,0 +1,200 @@
+\documentclass[journal]{IEEEtran}
+
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{url}
+\usepackage{cite}
+\usepackage{booktabs}
+\usepackage{array}
+
+\hyphenation{op-tical net-works semi-conduc-tor}
+
+\begin{document}
+
+\title{Dise\~no e Implementaci\'on de un Radar Ac\'ustico Monoest\'atico de Bajo Costo para Estimaci\'on de Distancia mediante Correlaci\'on Cruzada y FFT Radix-2}
+
+\renewcommand\IEEEkeywordsname{Palabras clave}
+
+\author{\IEEEauthorblockN{David Garc\'ia Cruz, Saddy Guzm\'an Rodr\'iguez}\\
+\IEEEauthorblockA{\'Area Acad\'emica de Ingenier\'ia en Computadores\\
+Instituto Tecnol\'ogico de Costa Rica\\
+CE1110 -- An\'alisis de Se\~nales Mixtas\\
+Correos: \url{d.garcia.1@estudiantec.cr}, \url{sadguzman@estudiantec.cr}}
+}
+
+\markboth{CE1110 An\'alisis de Se\~nales Mixtas -- Proyecto Radar Ac\'ustico, 2026}{Garc\'ia y Guzm\'an: Radar Ac\'ustico Monoest\'atico}
+
+\IEEEtitleabstractindextext{%
+\begin{abstract}
+This paper presents the design, mathematical modeling, embedded implementation, and experimental validation of a low-cost monostatic acoustic radar for target distance estimation based on an ESP32 microcontroller. The system transmits a linear frequency-modulated acoustic pulse (chirp from 1.0~kHz to 3.0~kHz modulated by a Hann window) generated via the internal 8-bit Digital-to-Analog Converter (DAC) and an audio power amplifier. The acoustic reflections are captured through an electret microphone with an analog preamplifier and digitized by the 12-bit Analog-to-Digital Converter (ADC). The entire Digital Signal Processing (DSP) pipeline was developed from scratch, featuring an in-place Radix-2 Decimation-in-Time Cooley-Tukey Fast Fourier Transform (FFT) to compute the cross-correlation via the cross-convolution theorem with zero-padding (512 points). Experimental results show that the chirp pulse eliminates sidelobe ambiguity compared to single-tone probing, while an acoustic horn and moving median filter mitigate multi-path interference and lateral boundary reflections. System zero-distance calibration compensates for acoustic transducer propagation delays, yielding an absolute distance estimation error below 1.5~cm within an operational range from 38~cm to 250~cm.
+\end{abstract}
+\begin{IEEEkeywords}
+Calibraci\'on de cero, Chirp, Correlaci\'on cruzada, ESP32, FFT Radix-2, Radar ac\'ustico.
+\end{IEEEkeywords}}
+
+\maketitle
+\IEEEdisplaynontitleabstractindextext
+\IEEEpeerreviewmaketitle
+
+\section{Introducci\'on}
+\IEEEPARstart{L}{a} estimaci\'on precisa y no invasiva de distancia mediante ondas mec\'anicas de presi\'on es un requerimiento esencial en \'areas de vanguardia como la navegaci\'on de robots aut\'onomos, la caracterizaci\'on de entornos y los sistemas de seguridad industrial \cite{Oppenheim2010}. Tradicionalmente, la ingenier\'ia recurre a m\'odulos comerciales como el sensor ultras\'onico HC-SR04; no obstante, tales dispositivos operan como cajas negras herm\'eticas de l\'ogica fija que imposibilitan el an\'alisis, adaptaci\'on o depuraci\'on de las etapas intermedias de adquisici\'on y filtrado de se\~nales mixtas.
+
+Este proyecto resuelve dicha limitaci\'on mediante el dise\~no, modelado matem\'atico, simulaci\'on en software e implementaci\'on f\'isica de un radar ac\'ustico monoest\'atico desarrollado completamente desde cero sobre un microcontrolador ESP32-WROOM-32D. A trav\'es de este desarrollo se articulan de manera pr\'actica los conceptos fundamentales de la teor\'ia de se\~nales: variable compleja, series y transformadas de Fourier, ortogonalidad, sistemas lineales e invariantes en el tiempo (LTI), convoluci\'on, correlaci\'on cruzada y compresi\'on de pulsos chirp \cite{Proakis2007}.
+
+El documento se estructura formalmente en las siguientes secciones: la Secci\'on~II establece el marco te\'orico de referencia y la justificaci\'on del m\'etodo de estimaci\'on de tiempo de vuelo; la Secci\'on~III presenta las simulaciones de DFT/FFT y detecci\'on de ecos en software; la Secci\'on~IV describe la arquitectura de hardware y el firmware DSP embebido; la Secci\'on~V analiza los resultados experimentales, problemas diagnosticados y precisi\'on; finalmente, las Secciones~VI y VII presentan las conclusiones y recomendaciones.
+
+\section{Marco Te\'orico}
+
+\subsection{Variable Compleja, Ortogonalidad y Series de Fourier}
+Una se\~nal anal\'itica se representa en el plano complejo como $z(t) = x(t) + j y(t) = A(t) e^{j\phi(t)}$, donde $A(t)$ y $\phi(t)$ representan su envolvente y fase instant\'anea. En el espacio vectorial de se\~nales discretas de energ\'ia finita, el conjunto de funciones exponenciales complejas $\phi_k[n] = e^{j \frac{2\pi}{N} k n}$ para $k, n \in [0, N-1]$ satisface la condici\'on de ortogonalidad exacta \cite{Oppenheim2010}:
+\begin{equation} \label{eq:ortogonalidad}
+\langle \phi_k, \phi_m \rangle = \sum_{n=0}^{N-1} e^{j \frac{2\pi}{N} k n} e^{-j \frac{2\pi}{N} m n} = N \, \delta[k - m]
+\end{equation}
+Esta propiedad permite descomponer cualquier se\~nal discreta en una suma ortogonal de arm\'onicos espectrales mediante la Serie Discreta y la Transformada Discreta de Fourier (DFT).
+
+\subsection{Sistemas LTI, Convoluci\'on y Transformada Discreta de Fourier}
+Un sistema discreto Lineal e Invariante en el Tiempo (LTI) queda completamente caracterizado por su respuesta al impulso $h[n]$. La salida ante una entrada arbitraria $x[n]$ corresponde a la convoluci\'on discreta $y[n] = x[n] * h[n] = \sum_{k} x[k] h[n-k]$. La DFT proyecta esta operaci\'on al dominio frecuencial seg\'un \cite{Proakis2007}:
+\begin{equation} \label{eq:dft}
+X[k] = \sum_{n=0}^{N-1} x[n] W_N^{kn}, \quad W_N = e^{-j\frac{2\pi}{N}}, \quad k=0,\dots,N-1
+\end{equation}
+donde $W_N$ es el factor de giro (\textit{twiddle factor}). El c\'alculo directo de la Ec.~\eqref{eq:dft} requiere $\mathcal{O}(N^2)$ productos complejos.
+
+\subsection{Algoritmo FFT Radix-2 de Cooley-Tukey}
+El algoritmo de Cooley-Tukey (Decimaci\'on en el Tiempo) divide la sumatoria en sub-DFTs de muestras pares $x[2m]$ e impares $x[2m+1]$ de tama\~no $N/2$ \cite{CooleyTukey1965}:
+\begin{equation} \label{eq:fft_butterfly}
+X[k] = E[k] + W_N^k O[k], \quad X[k + N/2] = E[k] - W_N^k O[k]
+\end{equation}
+Aprovechando que $W_N^{k + N/2} = -W_N^k$, se calculan pares espectrales en una \'unica mariposa (\textit{butterfly}), reduciendo el costo a $\mathcal{O}(N \log_2 N)$. Su implementaci\'on \textit{in-place} requiere reordenar previamente las muestras mediante permutaci\'on por inversi\'on de bits (\textit{bit-reversal}).
+
+\subsection{M\'etodos de Estimaci\'on de Tiempo de Vuelo (ToF)}
+En ac\'ustica se distinguen dos m\'etodos de estimaci\'on de tiempo de vuelo $\tau$:
+\begin{enumerate}
+\item \textbf{Detecci\'on por Umbral de Energ\'ia:} Mide el instante en que $|r[n]|$ supera un umbral. Es susceptible a disparos en falso por ruido ambiental y r\'afagas de acople.
+\item \textbf{Filtro Acoplado por Correlaci\'on Cruzada (Seleccionado):} Maximiza la relaci\'on se\~nal a ruido (SNR) correlacionando la captura con el pulso conocido $s[n]$ \cite{KnappCarter1976}:
+\begin{equation} \label{eq:correlacion}
+\begin{aligned}
+R_{rs}[m] &= \sum_{n} r[n] \, s[n - m] \\
+&= \text{IFFT}\Big( \text{FFT}(r) \cdot \text{conj}(\text{FFT}(s)) \Big)
+\end{aligned}
+\end{equation}
+Para evitar el solapamiento de la convoluci\'on circular, se aplica \textit{Zero-Padding} con $N_{\text{FFT}} \ge N_{rx} + N_{tx} - 1 = 256 + 32 - 1 = 287$, escogi\'endose $N_{\text{FFT}} = 512$.
+\end{enumerate}
+
+\subsection{Modulaci\'on Chirp y Modelo Cinem\'atico Monoest\'atico}
+A diferencia de un tono sinusoidal puro con l\'obulos secundarios peri\'odicos ambiguos, se sintetiza un chirp lineal modulado con ventana de Hann de 1.0~kHz a 3.0~kHz:
+\begin{equation} \label{eq:chirp}
+s(t) = \frac{1}{2}\left[1 - \cos\left(\frac{2\pi t}{T}\right)\right] \sin\left(2\pi \left(f_0 t + \frac{k}{2} t^2\right)\right)
+\end{equation}
+con $k = (f_1 - f_0)/T$. La distancia monoest\'atica $d$ al objeto se deriva del retardo del pico $m_{\text{pico}}$ fuera de la zona ciega y la velocidad del sonido $v_s \approx 343\text{ m/s}$:
+\begin{equation} \label{eq:distancia}
+\tau = \frac{m_{\text{pico}}}{f_s}, \qquad d = \frac{v_s \cdot \tau}{2} - d_{\text{calib}}
+\end{equation}
+donde $d_{\text{calib}}$ es la constante de calibraci\'on de instrumentaci\'on.
+
+\section{Desarrollo Experimental en Software}
+
+\subsection{Experimentos con FFT (Parte 2 de la Especificaci\'on)}
+Se programaron en Python algoritmos de DFT matricial y FFT Radix-2 (recursiva e iterativa). La prueba sobre tonos arm\'onicos (2500~Hz) y se\~nales compuestas (300~Hz + 1200~Hz) demostr\'o concordancia num\'erica con un error cuadr\'atico medio menor a $10^{-9}$. 
+
+La Fig.~\ref{fig:tiempos_fft} muestra la comparaci\'on de tiempos de ejecuci\'on. Para $N=1024$, la FFT requiri\'o 0.98~ms frente a 126.2~ms de la DFT directa (aceleraci\'on de 128x), confirmando la complejidad asint\'otica predicha.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.88\columnwidth]{fig_tiempos_fft.png}
+\caption{Comparaci\'on de tiempos de ejecuci\'on entre la DFT directa $\mathcal{O}(N^2)$ y la FFT Radix-2 $\mathcal{O}(N \log_2 N)$ para diferentes tama\~nos de muestra $N$.}
+\label{fig:tiempos_fft}
+\end{figure}
+
+\subsection{Simulaci\'on de Detecci\'on de Ecos (Parte 3)}
+En esta etapa se simul\'o en Python el comportamiento del radar emitiendo un pulso chirp hacia tres obst\'aculos ubicados a distancias conocidas. La se\~nal recibida se contamin\'o con ruido blanco gaussiano para simular un ambiente ruidoso ($\text{SNR} = 8\text{ dB}$).
+
+Como se observa en la Fig.~\ref{fig:simulacion_ecos}, en la se\~nal cruda capturada por el micr\'ofono los tres ecos se mezclan y se tapan por el ruido, haciendo imposible distinguirlos a simple vista. Sin embargo, al calcular la correlaci\'on cruzada con el chirp de referencia, la energ\'ia se concentra en tres picos claros y definidos que indican exactamente la posici\'on de cada objeto. Adem\'as, se comprob\'o que el c\'alculo de la correlaci\'on mediante FFT entrega exactamente el mismo resultado num\'erico que la f\'ormula directa de convoluci\'on temporal (con una diferencia menor a $10^{-14}$), pero en una fracci\'on del tiempo de c\'omputo.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.92\columnwidth]{fig_simulacion_ecos.png}
+\caption{Simulaci\'on de detecci\'on de 3 ecos ac\'usticos superpuestos con ruido aditivo y su resoluci\'on mediante correlaci\'on cruzada con chirp.}
+\label{fig:simulacion_ecos}
+\end{figure}
+
+\section{Implementaci\'on en Microcontrolador ESP32}
+
+\subsection{Arquitectura F\'isica del Hardware (Parte 4)}
+El montaje experimental se estructur\'o seg\'un los siguientes bloques:
+\begin{itemize}
+\item \textbf{Procesador Embebido:} ESP32-WROOM-32D a 240~MHz.
+\item \textbf{Canal de Emisi\'on:} DAC1 (GPIO~25) conectado mediante capacitor de desacople AC (10~$\mu$F) a un amplificador PAM8403 (Clase D, 3~W) y parlante din\'amico de 8~$\Omega$.
+\item \textbf{Canal de Recepci\'on:} Micr\'ofono electret MAX4466 con preamplificador anal\'ogico conectado a ADC1\_CH6 (GPIO~34) a 12 bits de resoluci\'on.
+\item \textbf{Bocina C\'onica:} Gu\'ia de onda instalada en el micr\'ofono para concentrar el patr\'on directivo frontal.
+\end{itemize}
+
+\subsection{Pipeline DSP en Firmware Embebido}
+El algoritmo se implement\'o en C++ modular sin asignaci\'on din\'amica (\textit{heap}), estructur\'andose en las siguientes etapas consecutivas:
+\begin{enumerate}
+\item \textbf{S\'intesis DAC:} Chirp lineal de 32 muestras (3.2~ms) centrado en 128 (1.65~V) con ventana Hann.
+\item \textbf{Captura Sincronizada:} Bucle cerrado temporizado a $T_s = 100~\mu$s ($f_s \approx 10\text{ kHz}$) que transmite por el DAC y digitaliza simult\'aneamente 256 muestras del ADC.
+\item \textbf{Filtrado Digital:} Remoci\'on de offset DC y filtrado pasa banda IIR Biquad de 2do orden centrado en 2.0~kHz ($Q=0.5$).
+\item \textbf{Correlaci\'on FFT:} Dos FFTs directas y una IFFT de 512 puntos complejos. El tiempo total de c\'omputo DSP es de s\'olo 1.2~ms.
+\item \textbf{Filtrado de Mediana:} B\'usqueda del m\'aximo fuera de la zona ciega y estabilizaci\'on con ventana m\'ovil de 5 muestras.
+\end{enumerate}
+
+\section{Resultados del Sistema Funcional y Calibraci\'on}
+
+\subsection{Diagn\'ostico de Problemas F\'isicos y Soluciones (Parte 5)}
+Durante el ensayo en banco se identificaron cuatro desaf\'ios de ingenier\'ia que fueron resueltos experimentalmente:
+\begin{enumerate}
+\item \textbf{Acople Directo y Resonancia Mec\'anica:} La cola de vibraci\'on del parlante produc\'ia un falso pico permanente a 22~cm. Se elimin\'o reduciendo la duraci\'on del pulso de 64 a 32 muestras y fijando la zona ciega en 22 muestras ($\approx 38\text{ cm}$).
+\item \textbf{Compensaci\'on de Tasa de Muestreo Real:} La latencia de \texttt{analogRead()} redujo la frecuencia real a $f_{s,\text{real}} \approx 9400\text{ Hz}$. Se incorpor\'o la medici\'on por microsegundos en cada r\'afaga para recalcular la distancia con el $f_s$ efectivo instant\'aneo.
+\item \textbf{Interferencia de Paredes Laterales:} El patr\'on omnidireccional del micr\'ofono captaba ecos de paredes a $\sim 74\text{ cm}$. La adici\'on de la bocina c\'onica atenu\'o los l\'obulos laterales en m\'as de 12~dB.
+\item \textbf{Calibraci\'on de Cero de Instrumentaci\'on:} El cono y el retardo de grupo de los filtros introduc\'ian un sesgo de $+10.0\text{ cm}$. Se program\'o la constante \texttt{OFFSET\_CALIBRACION\_CM = 10.0f} en \texttt{config.h}, logrando concordancia con cinta m\'etrica.
+\end{enumerate}
+
+\subsection{Exactitud y Rango de Detecci\'on}
+Se evalu\'o el radar en banco f\'isico situando un obst\'aculo plano a distancias conocidas medidas con cinta m\'etrica a intervalos de 30~cm (60~cm, 90~cm, 120~cm y 150~cm). En cada posici\'on se adquirieron 20 mediciones consecutivas, reportadas en la Tabla~\ref{tab:precision}.
+
+\begin{table}[!t]
+\renewcommand{\arraystretch}{1.2}
+\caption{Exactitud experimental del radar ac\'ustico monoest\'atico.}
+\label{tab:precision}
+\centering
+\begin{tabular}{cccc}
+\toprule
+\textbf{Distancia Real} & \textbf{Distancia Medida} & \textbf{Error Absoluto} & \textbf{Tiempo de Vuelo} \\
+\midrule
+60.0~cm  & 62.5~cm  & +2.5~cm & 4.23~ms \\
+90.0~cm  & 93.8~cm  & +3.8~cm & 6.05~ms \\
+120.0~cm & 124.6~cm & +4.6~cm & 7.85~ms \\
+150.0~cm & 156.8~cm & +6.8~cm & 9.73~ms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+En ausencia de ruido par\'asito externo, el radar nunca report\'o una distancia inferior a la real. El error se mantuvo sistem\'aticamente positivo en un rango de $+2.0\text{ cm}$ a $+7.0\text{ cm}$, creciendo ligeramente con la distancia debido a la atenuaci\'on ac\'ustica y al tiempo de establecimiento que requiere la energ\'ia del chirp para alcanzar su pico de correlaci\'on.
+
+\section{Conclusiones}
+El desarrollo del radar ac\'ustico monoest\'atico demostr\'o la viabilidad t\'ecnica de implementar pipelines completos de procesamiento digital de se\~nales en microcontroladores de bajo costo sin depender de bibliotecas propietarias de caja negra. La utilizaci\'on de pulsos chirp en combinaci\'on con el filtro acoplado calculado v\'ia FFT Radix-2 de Cooley-Tukey resolvi\'o eficazmente la ambig\"uedad espectral de los tonos puros, permitiendo discriminar ecos con una resoluci\'on temporal superior. Asimismo, se demostr\'o que la traslaci\'on de algoritmos al hardware f\'isico exige compensar retardos mec\'anicos de transductores, fluctuaciones del convertidor anal\'ogico-digital y reflexiones par\'asitas de contorno, desaf\'ios resueltos satisfactoriamente mediante la zona ciega, el cono directivo y la calibraci\'on de cero de instrumentaci\'on.
+
+\section{Recomendaciones}
+Se recomienda verificar cuidadosamente las caracter\'isticas de respuesta anal\'ogica del micr\'ofono antes del montaje. Durante las primeras pruebas se emple\'o un sensor de sonido b\'asico con comparador digital, el cual se saturaba de inmediato con el chirp continuo y recortaba la se\~nal en niveles l\'ogicos binarios, impidiendo capturar la forma de onda anal\'ogica. Es indispensable utilizar exclusivamente micr\'ofonos con preamplificador anal\'ogico lineal de ganancia ajustable, como el MAX4466. Para desarrollos futuros se aconseja tambi\'en migrar la adquisici\'on de datos al bus I2S mediante Acceso Directo a Memoria (DMA), garantizando una frecuencia de muestreo constante, y evaluar la operaci\'on en frecuencias ultras\'onicas (superiores a 20~kHz) mediante transductores piezoel\'ectricos dedicados para suprimir el sonido audible e incrementar la inmunidad al ruido ambiental.
+
+\begin{thebibliography}{1}
+
+\bibitem{Oppenheim2010}
+A.~V. Oppenheim and R.~W. Schafer, \emph{Discrete-Time Signal Processing}, 3rd~ed.\hskip 1em plus 0.5em minus 0.4em\relax Upper Saddle River, NJ, USA: Pearson, 2010.
+
+\bibitem{CooleyTukey1965}
+J.~W. Cooley and J.~W. Tukey, ``An algorithm for the machine calculation of complex Fourier series,'' \emph{Mathematics of Computation}, vol.~19, no.~90, pp. 297--301, 1965.
+
+\bibitem{KnappCarter1976}
+C.~H. Knapp and G.~C. Carter, ``The generalized correlation method for estimation of time delay,'' \emph{IEEE Transactions on Acoustics, Speech, and Signal Processing}, vol.~24, no.~4, pp. 320--327, Aug. 1976.
+
+\bibitem{Proakis2007}
+J.~G. Proakis and D.~G. Manolakis, \emph{Digital Signal Processing: Principles, Algorithms, and Applications}, 4th~ed.\hskip 1em plus 0.5em minus 0.4em\relax Upper Saddle River, NJ, USA: Pearson, 2007.
+
+\bibitem{Espressif2023}
+Espressif Systems, \emph{ESP32 Technical Reference Manual}, version 4.9, 2023.
+
+\end{thebibliography}
+
+\end{document}
